@@ -1734,6 +1734,12 @@ static void cull_queue_explore(void) {
     q = q->next;
   }
 
+  /** Log favored seed **/
+  u8* favor_path = alloc_printf("%s/favor.log", out_dir);
+  FILE *flog = fopen(favor_path, "a");
+  if (!flog) PFATAL("Failed open favor log file.");
+  u64 exec_us = get_cur_time() - start_time;
+  /**********************/
   for (i = 0; i < FUNC_SIZE; i++) {
     if (top_rated_func[i] && !virgin_funcs[i]) {
       
@@ -1744,9 +1750,18 @@ static void cull_queue_explore(void) {
 
       if (!top_rated_func[i]->was_fuzzed) pending_favored++;
 
+      /** Log favored seed **/
+      fprintf(flog, "[%02d:%02d:%02d] Function %u: Seed %s as favored.\n",
+          (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+          i, top_rated_func[i]->fname);
+      /**********************/
     }
   }
 
+  fprintf(flog, "[%02d:%02d:%02d] round %lld, total %d, fav %d (pending %d)\n",
+      (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+      queue_cycle, queued_paths, queued_favored, pending_favored);
+  fclose(flog);
   if (!pending_favored) skip_next_explore = 1;
 
   q = queue;
