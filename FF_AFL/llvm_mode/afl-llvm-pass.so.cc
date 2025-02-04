@@ -961,7 +961,7 @@ bool AFLCoverage::runOnModule(Module &M) {
       auto iter = func2id.find(F.getName().str());
       if (iter != func2id.end()) {
         
-        // OKF("Found %s.", F.getName().str().c_str());
+        OKF("Found %s.", F.getName().str().c_str());
 
         BasicBlock::iterator IP = F.front().getFirstInsertionPt();
         IRBuilder<> IRB(&(*IP));
