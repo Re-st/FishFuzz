@@ -193,57 +193,65 @@ void update_unvisited_bfunc(u8 *virgin_func) {
 void update_exp_scoring(struct queue_entry **top_rated_func,
                         struct queue_entry* queue) {
 
+  char log_path[128];
+  snprintf(log_path, sizeof(log_path), "/box/output/update_exp_scoring.log");
+  FILE *log_file = fopen(log_path, "a");
+  if (!log_file) {
+    perror("Failed to open log file");
+    return;
+  }
+
   if (!best_perf) {
     best_perf = (u32 *)malloc(sizeof(u32) * FUNC_SIZE);
     memset(best_perf, 255, FUNC_SIZE * sizeof(u32));
   }
-  // for (auto i : boost::make_iterator_range(vertices(cg_graph))) {
-  for (u32 i = 0; i < FUNC_SIZE; i ++) {
-    // there are unvisited label in this function and it's not touched yet
-    if (!unvisited_func_map[i]) continue;
-    // if already fuzzed, point it to NULL
-    if (top_rated_func[i]) {
-      // if (top_rated_func[i]->favored) 
-      //   top_rated_func[i]->favored = 0;
-      if (top_rated_func[i]->was_fuzzed) 
-        top_rated_func[i] = NULL;
+
+  for (u32 i = 0; i < FUNC_SIZE; i++) {
+    fprintf(log_file, "[DEBUG] Processing function index: %u\n", i);
+
+    if (!unvisited_func_map[i]) {
+      fprintf(log_file, "[DEBUG] Skipping function index %u (already visited)\n", i);
+      continue;
     }
     // iterate over queue to find a seed with shortest distance
+
+    if (top_rated_func[i] && top_rated_func[i]->was_fuzzed) {
+      fprintf(log_file, "[DEBUG] Function index %u: Previous seed was fuzzed, resetting\n", i);
+      top_rated_func[i] = NULL;
+    }
+
+    u32 seeds_checked = 0, valid_seeds = 0;
     for (struct queue_entry *q = queue; q; q = q->next) {
       // skip fuzzed seed
+      seeds_checked++;
       if (q->was_fuzzed) continue;
       u32 fexp_score = 0, shortest_dist = UNREACHABLE_DIST;
-      // iterate over shortest map 
-      for (auto iter = func_dist_map[i].begin(); iter != func_dist_map[i].end(); iter ++) {
-        if (q->trace_func[iter->first])
-          if (iter->second < shortest_dist)
-            shortest_dist = iter->second;
+      for (auto iter = func_dist_map[i].begin(); iter != func_dist_map[i].end(); iter++) {
+        if (q->trace_func[iter->first] && iter->second < shortest_dist) {
+          shortest_dist = iter->second;
+        }
       }
       if (shortest_dist != UNREACHABLE_DIST) fexp_score = shortest_dist * 100;
 
       if (fexp_score) {
-        if (!top_rated_func[i]) {
+        valid_seeds++;
+        if (!top_rated_func[i] || fexp_score < best_perf[i] ||
+            (fexp_score == best_perf[i] &&
+             q->exec_us * q->len < top_rated_func[i]->exec_us * top_rated_func[i]->len)) {
+          fprintf(log_file, "[DEBUG] Function index %u: Updating best seed (score=%u, exec_us=%llu, len=%u)\n",
+                  i, fexp_score, q->exec_us, q->len);
           top_rated_func[i] = q;
           best_perf[i] = fexp_score;
-        }
-        else {
-          if (fexp_score < best_perf[i]) {
-            top_rated_func[i] = q;
-            best_perf[i] = fexp_score;
-            // debug_distance(dbg_dist, q->fname, i, fexp_score / 100, 1);
-          }
-          if (fexp_score == best_perf[i] && 
-              q->exec_us * q->len < top_rated_func[i]->exec_us * top_rated_func[i]->len) {
-            top_rated_func[i] = q;
-            best_perf[i] = fexp_score;
-            // debug_distance(dbg_dist, q->fname, i, fexp_score / 100, 0);
-          }
         }
       }
 
     }
+
+    fprintf(log_file, "[DEBUG] Function index %u: Checked %u seeds, %u valid seeds, best score=%u\n",
+            i, seeds_checked, valid_seeds, best_perf[i]);
   }
 
+  fclose(log_file);
 }
 
 void update_bug_scoring(u32* reach_bits_count, u32* trigger_bits_count) {
