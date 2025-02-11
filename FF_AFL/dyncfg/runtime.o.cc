@@ -207,23 +207,23 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
   }
 
   for (u32 i = 0; i < FUNC_SIZE; i++) {
-    fprintf(log_file, "[DEBUG] Processing function index: %u\n", i);
 
     if (!unvisited_func_map[i]) {
-      fprintf(log_file, "[DEBUG] Skipping function index %u (already visited)\n", i);
       continue;
+    } else {
+      fprintf(log_file, "%u/unvisited_func_map\n", i);
     }
     // iterate over queue to find a seed with shortest distance
 
     if (top_rated_func[i] && top_rated_func[i]->was_fuzzed) {
-      fprintf(log_file, "[DEBUG] Function index %u: Previous seed was fuzzed, resetting\n", i);
+      fprintf(log_file, "%u/top_rated_func[i]->was_fuzzed/%s\n", i, top_rated_func[i]->fname);
       top_rated_func[i] = NULL;
     }
 
     u32 seeds_checked = 0, valid_seeds = 0;
     for (struct queue_entry *q = queue; q; q = q->next) {
-      // skip fuzzed seed
       seeds_checked++;
+      // skip fuzzed seed
       if (q->was_fuzzed) continue;
       u32 fexp_score = 0, shortest_dist = UNREACHABLE_DIST;
       for (auto iter = func_dist_map[i].begin(); iter != func_dist_map[i].end(); iter++) {
@@ -235,11 +235,28 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
 
       if (fexp_score) {
         valid_seeds++;
-        if (!top_rated_func[i] || fexp_score < best_perf[i] ||
+        if (!top_rated_func[i]) {
+          fprintf(log_file, "[Update best seed] %u/first seed %s(%u,%llu,%u)\n",
+                  i,
+                  (const char*)q->fname,
+                  fexp_score,
+                  q->exec_us,
+                  q->len);
+          top_rated_func[i] = q;
+          best_perf[i] = fexp_score;
+        } else if (fexp_score < best_perf[i] ||
             (fexp_score == best_perf[i] &&
              q->exec_us * q->len < top_rated_func[i]->exec_us * top_rated_func[i]->len)) {
-          fprintf(log_file, "[DEBUG] Function index %u: Updating best seed (score=%u, exec_us=%llu, len=%u)\n",
-                  i, fexp_score, q->exec_us, q->len);
+          fprintf(log_file, "[Update best seed] %u/from %s(%u,%llu,%u)/to %s(%u,%llu,%u)\n",
+                  i,
+                  (const char*)top_rated_func[i]->fname,
+                  best_perf[i],
+                  top_rated_func[i]->exec_us,
+                  top_rated_func[i]->len,
+                  (const char*)q->fname,
+                  fexp_score,
+                  q->exec_us,
+                  q->len);
           top_rated_func[i] = q;
           best_perf[i] = fexp_score;
         }
@@ -247,8 +264,14 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
 
     }
 
-    fprintf(log_file, "[DEBUG] Function index %u: Checked %u seeds, %u valid seeds, best score=%u\n",
-            i, seeds_checked, valid_seeds, best_perf[i]);
+    if (top_rated_func[i]) {
+      fprintf(log_file, "[Result] %u/%s(Total %u, Valid %u, Score %u)\n",
+        i,
+        (const char*)top_rated_func[i]->fname,
+        seeds_checked,
+        valid_seeds,
+        best_perf[i]);
+    }
   }
 
   fclose(log_file);
