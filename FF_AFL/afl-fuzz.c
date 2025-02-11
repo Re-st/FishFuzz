@@ -1799,7 +1799,12 @@ static void cull_queue_explore(void) {
   for (i = 0; i < FUNC_SIZE; i++) {
     if (top_rated_func[i] && !virgin_funcs[i]) {
       
-      if (top_rated_func[i]->favored) continue;
+      if (top_rated_func[i]->favored) {
+        fprintf(flog, "[%02d:%02d:%02d] Function %u: Seed %s already favored!\n",
+            (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+            i, top_rated_func[i]->fname);
+        continue;
+      }
 
       top_rated_func[i]->favored = 1;
       queued_favored++;
