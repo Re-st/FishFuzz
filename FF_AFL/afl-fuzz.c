@@ -1543,6 +1543,13 @@ static void cull_queue_origin(void) {
     q->retry = 0;
     q = q->next;
   }
+  /** Log favored seed **/
+  u8* favor_path = alloc_printf("%s/favor.log", out_dir);
+  FILE *flog = fopen(favor_path, "a");
+  if (!flog) PFATAL("Failed open favor log file.");
+  u64 exec_us = get_cur_time() - start_time;
+  /**********************/
+
 
 
   /* Let's see if anything in the bitmap isn't captured in temp_v.
@@ -1562,7 +1569,12 @@ static void cull_queue_origin(void) {
             temp_v[j] &= ~top_rated[i]->trace_mini[j];
 
         top_rated[i]->favored = 1;
-        // top_rated[i]->power_rate_afl = get_afl_rate(top_rated[i]);
+         /** Log favored seed **/
+         fprintf(flog, "[%02d:%02d:%02d] [BitFreq] Edge %u: Seed %s as favored.\n",
+             (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+             i, top_rated[i]->fname);
+         /**********************/
+         // top_rated[i]->power_rate_afl = get_afl_rate(top_rated[i]);
         queued_favored++;
 
         if (!top_rated[i]->was_fuzzed) pending_favored++;
@@ -1581,7 +1593,12 @@ static void cull_queue_origin(void) {
             temp_v[j] &= ~top_rated[i]->trace_mini[j];
 
         top_rated[i]->favored = 1;
-        // top_rated[i]->power_rate_afl = get_afl_rate(top_rated[i]);
+         /** Log favored seed **/
+         fprintf(flog, "[%02d:%02d:%02d] [Not BitFreq] Edge %u: Seed %s as favored.\n",
+             (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+             i, top_rated[i]->fname);
+         /**********************/
+         // top_rated[i]->power_rate_afl = get_afl_rate(top_rated[i]);
         queued_favored++;
 
         if (!top_rated[i]->was_fuzzed) pending_favored++;
@@ -1603,7 +1620,12 @@ static void cull_queue_origin(void) {
             temp_v[j] &= ~top_rated[i]->trace_mini[j];
 
         top_rated[i]->favored = 1;
-        // top_rated[i]->power_rate_afl = get_afl_rate(top_rated[i]);
+         /** Log favored seed **/
+         fprintf(flog, "[%02d:%02d:%02d] [BitFreqNoPending] Edge %u: Seed %s as favored.\n",
+             (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+             i, top_rated[i]->fname);
+         /**********************/
+         // top_rated[i]->power_rate_afl = get_afl_rate(top_rated[i]);
         queued_favored++;
 
         if (!top_rated[i]->was_fuzzed) pending_favored++;
@@ -1611,6 +1633,11 @@ static void cull_queue_origin(void) {
       }
   }
 
+  fprintf(flog, "[%02d:%02d:%02d] round %lld, total %d, fav %d (pending %d)\n",
+      (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+      queue_cycle, queued_paths, queued_favored, pending_favored);
+  fclose(flog);
+ 
   q = queue;
 
   while (q) {
@@ -1650,6 +1677,12 @@ static void cull_queue_bug(void) {
     q->retry = 0;
     q = q->next;
   }
+  /** Log favored seed **/
+  u8* favor_path = alloc_printf("%s/favor.log", out_dir);
+  FILE *flog = fopen(favor_path, "a");
+  if (!flog) PFATAL("Failed open favor log file.");
+  u64 exec_us = get_cur_time() - start_time;
+  /**********************/
 
 
   // u32 total_visit_cnt = 0, total_n_bugs = 0;
@@ -1671,12 +1704,21 @@ static void cull_queue_bug(void) {
         
       selected->favored = 1;
       queued_favored++;
-
+      /** Log favored seed **/
+      fprintf(flog, "[%02d:%02d:%02d] Sanitizer label %u: Seed %s as favored.\n",
+          (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+          i, selected->fname);
+      /**********************/
+ 
       if (!selected->was_fuzzed) pending_favored++;
 
     }
   }
-
+  fprintf(flog, "[%02d:%02d:%02d] round %lld, total %d, fav %d (pending %d)\n",
+      (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+      queue_cycle, queued_paths, queued_favored, pending_favored);
+  fclose(flog);
+ 
 
   if (queued_favored) {
     u32 rate = pending_favored * 100 / queued_favored;
@@ -1740,6 +1782,20 @@ static void cull_queue_explore(void) {
   if (!flog) PFATAL("Failed open favor log file.");
   u64 exec_us = get_cur_time() - start_time;
   /**********************/
+  u32 num_virgin_func = 0;
+  for (i = 0; i < FUNC_SIZE; i++) {
+    if (!virgin_funcs[i]) {
+      num_virgin_func++;
+      /** Log virgin func **/
+      fprintf(flog, "[%02d:%02d:%02d] Function %u: not reached.\n",
+          (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+          i);
+    }
+  }
+  fprintf(flog, "[%02d:%02d:%02d] round %lld, not reached func %d\n",
+      (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+      queue_cycle, num_virgin_func);
+
   for (i = 0; i < FUNC_SIZE; i++) {
     if (top_rated_func[i] && !virgin_funcs[i]) {
       
