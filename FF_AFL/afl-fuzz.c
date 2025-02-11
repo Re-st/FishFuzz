@@ -1782,19 +1782,19 @@ static void cull_queue_explore(void) {
   if (!flog) PFATAL("Failed open favor log file.");
   u64 exec_us = get_cur_time() - start_time;
   /**********************/
-  u32 num_virgin_func = 0;
+  u32 non_virgin_func = 0;
   for (i = 0; i < FUNC_SIZE; i++) {
-    if (!virgin_funcs[i]) {
-      num_virgin_func++;
-      /** Log virgin func **/
-      fprintf(flog, "[%02d:%02d:%02d] Function %u: not reached.\n",
+    if (virgin_funcs[i]) {
+      non_virgin_func++;
+      /** Log non virgin func **/
+      fprintf(flog, "[%02d:%02d:%02d] Function %u reached.\n",
           (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
           i);
     }
   }
-  fprintf(flog, "[%02d:%02d:%02d] round %lld, not reached func %d\n",
+  fprintf(flog, "[%02d:%02d:%02d] round %lld, reached func %d\n",
       (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
-      queue_cycle, num_virgin_func);
+      queue_cycle, non_virgin_func);
 
   for (i = 0; i < FUNC_SIZE; i++) {
     if (top_rated_func[i] && !virgin_funcs[i]) {
