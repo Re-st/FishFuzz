@@ -1791,6 +1791,11 @@ static void cull_queue_explore(void) {
           (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
           i);
     }
+    if (!top_rated_func[i]) {
+      fprintf(flog, "[%02d:%02d:%02d] Function %u has no top_rated.\n",
+          (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+          i);
+    }
   }
   fprintf(flog, "[%02d:%02d:%02d] round %lld, reached func %d\n",
       (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
