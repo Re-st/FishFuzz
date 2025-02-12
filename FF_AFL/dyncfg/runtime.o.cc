@@ -211,16 +211,17 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
     if (!unvisited_func_map[i]) {
       continue;
     } else {
-      fprintf(log_file, "%u/unvisited_func_map\n", i);
+      fprintf(log_file, "F%u/unvisited_func_map (Which means, unvisited)\n", i);
     }
     // iterate over queue to find a seed with shortest distance
 
     if (top_rated_func[i] && top_rated_func[i]->was_fuzzed) {
-      fprintf(log_file, "%u/top_rated_func[i]->was_fuzzed/%s\n", i, top_rated_func[i]->fname);
+      fprintf(log_file, "F%u/top_rated_func[i]->was_fuzzed/%s\n", i, top_rated_func[i]->fname);
       top_rated_func[i] = NULL;
     }
 
     u32 seeds_checked = 0, valid_seeds = 0;
+    u32 func_reason = 0, best_func_reason = 0;
     for (struct queue_entry *q = queue; q; q = q->next) {
       seeds_checked++;
       // skip fuzzed seed
@@ -228,6 +229,7 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
       u32 fexp_score = 0, shortest_dist = UNREACHABLE_DIST;
       for (auto iter = func_dist_map[i].begin(); iter != func_dist_map[i].end(); iter++) {
         if (q->trace_func[iter->first] && iter->second < shortest_dist) {
+          func_reason = iter->first;
           shortest_dist = iter->second;
         }
       }
@@ -236,10 +238,11 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
       if (fexp_score) {
         valid_seeds++;
         if (!top_rated_func[i]) {
-          fprintf(log_file, "[Update best seed] %u/first seed %s(%u,%llu,%u)\n",
+          fprintf(log_file, "[Update best seed] F%u/first S%s(d%u,f%u,%lluus,%ub)\n",
                   i,
                   (const char*)q->fname,
-                  fexp_score,
+                  shortest_dist,
+                  func_reason,
                   q->exec_us,
                   q->len);
           top_rated_func[i] = q;
@@ -247,18 +250,21 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
         } else if (fexp_score < best_perf[i] ||
             (fexp_score == best_perf[i] &&
              q->exec_us * q->len < top_rated_func[i]->exec_us * top_rated_func[i]->len)) {
-          fprintf(log_file, "[Update best seed] %u/from %s(%u,%llu,%u)/to %s(%u,%llu,%u)\n",
+          fprintf(log_file, "[Update best seed] F%u/from S%s(d%u,f%u,%lluus,%ub)/to S%s(d%u,f%u,%lluus,%ub)\n",
                   i,
                   (const char*)top_rated_func[i]->fname,
-                  best_perf[i],
+                  best_perf[i] / 100,
+                  best_func_reason,
                   top_rated_func[i]->exec_us,
                   top_rated_func[i]->len,
                   (const char*)q->fname,
-                  fexp_score,
+                  shortest_dist,
+                  func_reason,
                   q->exec_us,
                   q->len);
           top_rated_func[i] = q;
           best_perf[i] = fexp_score;
+          best_func_reason = func_reason;
         }
       }
 
