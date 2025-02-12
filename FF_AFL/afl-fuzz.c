@@ -1783,6 +1783,7 @@ static void cull_queue_explore(void) {
   u64 exec_us = get_cur_time() - start_time;
   /**********************/
   u32 non_virgin_func = 0;
+  u32 no_top_rated = 0;
   for (i = 0; i < FUNC_SIZE; i++) {
     if (virgin_funcs[i]) {
       non_virgin_func++;
@@ -1791,15 +1792,16 @@ static void cull_queue_explore(void) {
           (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
           i);
     }
-    if (!top_rated_func[i]) {
-      fprintf(flog, "[%02d:%02d:%02d] Function %u has no top_rated.\n",
-          (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
-          i);
-    }
+     if (!top_rated_func[i]) {
+       no_top_rated++;
+//       fprintf(flog, "[%02d:%02d:%02d] Function %u has no top_rated.\n",
+//           (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
+//           i);
+     }
   }
-  fprintf(flog, "[%02d:%02d:%02d] round %lld, reached func %d\n",
+  fprintf(flog, "[%02d:%02d:%02d] round %lld, reached func %d, no top_rated %d\n",
       (u32)(exec_us / 1000 / 3600), (u32)((exec_us / 1000 / 60) % 60), (u32)((exec_us / 1000) % 60),
-      queue_cycle, non_virgin_func);
+      queue_cycle, non_virgin_func, no_top_rated);
 
   for (i = 0; i < FUNC_SIZE; i++) {
     if (top_rated_func[i] && !virgin_funcs[i]) {
