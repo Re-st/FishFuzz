@@ -217,15 +217,15 @@ void update_exp_scoring(struct queue_entry **top_rated_func,
 
     if (top_rated_func[i] && top_rated_func[i]->was_fuzzed) {
       fprintf(log_file, "F%u/top_rated_func[i]->was_fuzzed/%s\n", i, top_rated_func[i]->fname);
-      // top_rated_func[i] = NULL;
+      top_rated_func[i] = NULL;
     }
 
     u32 seeds_checked = 0, valid_seeds = 0;
     u32 func_reason = 0, best_func_reason = 0;
     for (struct queue_entry *q = queue; q; q = q->next) {
       seeds_checked++;
-      // [Don't] skip fuzzed seed
-      // if (q->was_fuzzed) continue;
+      // skip fuzzed seed
+      if (q->was_fuzzed) continue;
       u32 fexp_score = 0, shortest_dist = UNREACHABLE_DIST;
       for (auto iter = func_dist_map[i].begin(); iter != func_dist_map[i].end(); iter++) {
         if (q->trace_func[iter->first] && iter->second < shortest_dist) {
