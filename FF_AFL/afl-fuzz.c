@@ -1955,13 +1955,6 @@ static void cull_queue(void) {
         current_mode = DEFAULT_MODE;
         log_seed_selection(EXPLORE_MODE, DEFAULT_MODE);
       }
-
-      else {
-        bugs_changed = 1;
-        last_exploit_time = get_cur_time();
-        current_mode = EXPLOIT_MODE;
-        log_seed_selection(EXPLORE_MODE, EXPLOIT_MODE);
-      }
     }
   }
   else if (current_mode == DEFAULT_MODE) {
@@ -1972,32 +1965,6 @@ static void cull_queue(void) {
       start_dist_time = get_cur_time();
       current_mode = EXPLORE_MODE;
       log_seed_selection(DEFAULT_MODE, EXPLORE_MODE);
-    }
-    else {
-
-      if (get_cur_time() - last_explore_time > 600 * 1000 || should_skip) {
-        bugs_changed = 1;
-        last_exploit_time = get_cur_time();
-        current_mode = EXPLOIT_MODE;
-        log_seed_selection(DEFAULT_MODE, EXPLOIT_MODE);
-      }
-    }
-  }
-  else if (current_mode == EXPLOIT_MODE) {
-
-    if (get_cur_time() - last_dist_time < 1800 * 1000 && !skip_next_explore) {
-      func_changed = 1;
-      // last_dist_time = get_cur_time();
-      start_dist_time = get_cur_time();
-      current_mode = EXPLORE_MODE;
-      log_seed_selection(EXPLOIT_MODE, EXPLORE_MODE);
-    }
-
-    if (get_cur_time() - last_exploit_time > 3600 * 1000 || should_skip) {
-      score_changed = 1;
-      last_explore_time = get_cur_time();
-      current_mode = DEFAULT_MODE;
-      log_seed_selection(EXPLOIT_MODE, DEFAULT_MODE);
     }
   }
   else {
@@ -2014,10 +1981,6 @@ static void cull_queue(void) {
     case EXPLORE_MODE : 
       cull_queue_explore();
       cull_queue_explore_time += (get_cur_time() - tmp_time_log);
-      return ;
-    case EXPLOIT_MODE : 
-      cull_queue_bug();
-      cull_queue_bug_time += (get_cur_time() - tmp_time_log);
       return ;
     default           :
       PFATAL("unsupport mode in queue cull!");
